@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  useMediaQuery, 
+import React, { useState, useEffect } from 'react';
+import {
+  Container,
+  Typography,
+  Box,
+  useMediaQuery,
   useTheme,
   Button,
   ToggleButtonGroup,
@@ -17,26 +16,39 @@ import Header from './Header';
 
 import CoinTable from '../crypto/CoinTable';
 import CoinCard from '../crypto/CoinCard';
+import CoinDetailsModal from '../crypto/CoinDetailsModal';
 import SearchBar from '../crypto/SearchBar';
 import PriceChart from '../charts/PriceChart';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import ErrorAlert from '../ui/ErrorAlert';
 import { motion } from 'framer-motion';
+import { Coin } from '../../types/crypto';
 
 const Dashboard: React.FC = () => {
   const { coins, loading, error, refetch } = useCryptoData();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [selectedCoin, setSelectedCoin] = useState<string>('bitcoin');
-  
+  const [detailsCoin, setDetailsCoin] = useState<Coin | null>(null);
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isMedium = useMediaQuery(theme.breakpoints.down('md'));
-  
-  const filteredCoins = coins.filter(coin => 
-    coin.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+
+  const filteredCoins = coins.filter(coin =>
+    coin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     coin.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Update selectedCoin when filteredCoins change
+  useEffect(() => {
+    if (filteredCoins.length > 0) {
+      const coinExists = filteredCoins.some(coin => coin.id === selectedCoin);
+      if (!coinExists) {
+        setSelectedCoin(filteredCoins[0].id);
+      }
+    }
+  }, [filteredCoins, selectedCoin]);
 
   const handleViewChange = (
     event: React.MouseEvent<HTMLElement>,
@@ -47,9 +59,16 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Handler for selecting a coin (for details or chart)
+  const handleSelectCoin = (coinId: string) => {
+    setSelectedCoin(coinId);
+    const coin = coins.find(c => c.id === coinId);
+    setDetailsCoin(coin || null);
+  };
+
   return (
-    <Box 
-      sx={{ 
+    <Box
+      sx={{
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
@@ -57,8 +76,8 @@ const Dashboard: React.FC = () => {
       }}
     >
       <Header onRefresh={refetch} />
-      
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
+
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flexGrow: 1, px: isMobile ? 2 : 3 }}>
         {/* Dashboard Header */}
         <Box sx={{ mb: 4 }}>
           <motion.div
@@ -66,9 +85,9 @@ const Dashboard: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Typography 
-              variant={isMobile ? "h4" : "h3"} 
-              component="h1" 
+            <Typography
+              variant={isMobile ? "h4" : "h3"}
+              component="h1"
               gutterBottom
               sx={{ fontWeight: 700 }}
             >
@@ -79,23 +98,29 @@ const Dashboard: React.FC = () => {
             </Typography>
           </motion.div>
         </Box>
-        
+
         {/* Search and View Toggle */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', mb: 3, mx: -1 }}>
-          <Box sx={{ width: { xs: '100%', sm: '66.67%', md: '75%' }, p: 1 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', mx: -1, mb: 2 }}>
+          <Box sx={{ width: { xs: '100%', sm: '75%', md: '75%' }, p: 1 }}>
             <SearchBar
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
             />
           </Box>
-          <Box sx={{ width: { xs: '100%', sm: '33.33%', md: '25%' }, p: 1, display: 'flex', justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+          <Box sx={{ 
+            width: { xs: '100%', sm: '25%', md: '25%' }, 
+            p: 1, 
+            display: 'flex', 
+            justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            alignItems: 'center'
+          }}>
             <ToggleButtonGroup
               value={view}
               exclusive
               onChange={handleViewChange}
               aria-label="view mode"
-              size="small"
-              sx={{ 
+              size={isMobile ? "small" : "medium"}
+              sx={{
                 bgcolor: 'backgroundSecondary.main',
                 borderRadius: 1,
               }}
@@ -109,67 +134,51 @@ const Dashboard: React.FC = () => {
             </ToggleButtonGroup>
           </Box>
         </Box>
-        
+
         {/* Main Content */}
         {loading ? (
           <LoadingSpinner />
         ) : error ? (
           <ErrorAlert message={error} onRetry={refetch} />
         ) : (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', mx: -1.5 }}>
+          <>
             {/* Chart Section */}
-            <Box sx={{ width: { xs: '100%', lg: '66.67%' }, p: 1.5 }}>
+            <Box sx={{ mb: 3 }}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <PriceChart 
-                  coins={filteredCoins} 
-                  selectedCoin={selectedCoin}
-                  onSelectCoin={setSelectedCoin}
+                <PriceChart
+                  coins={filteredCoins}
+                  selectedCoinId={selectedCoin}
+                  onSelectCoin={handleSelectCoin}
                 />
               </motion.div>
             </Box>
-            
-            {/* Stats Highlights */}
-            <Box sx={{ width: { xs: '100%', lg: '33.33%' }, p: 1.5 }}>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', mx: -1 }}>
-                {[0, 1, 2].map((index) => {
-                  if (!filteredCoins[index]) return null;
-                  return (
-                    <Box sx={{ width: { xs: '100%', sm: '33.33%', lg: '100%' }, p: 1 }} key={index}>
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 * (index + 1) }}
-                      >
-                        <CoinCard coin={filteredCoins[index]} />
-                      </motion.div>
-                    </Box>
-                  );
-                })}
-              </Box>
-            </Box>
-            
+
             {/* Coins List or Grid */}
-            <Box sx={{ width: '100%', p: 1.5 }}>
-              <Typography variant="h5" component="h2" sx={{ mt: 3, mb: 2, fontWeight: 600 }}>
+            <Box sx={{ mt: 4 }}>
+              <Typography 
+                variant={isMobile ? "h6" : "h5"} 
+                component="h2" 
+                sx={{ mb: 2, fontWeight: 600 }}
+              >
                 Top Cryptocurrencies
               </Typography>
-              
+
               {filteredCoins.length === 0 ? (
-                <Box sx={{ 
-                  textAlign: 'center', 
-                  py: 8, 
+                <Box sx={{
+                  textAlign: 'center',
+                  py: 8,
                   bgcolor: 'backgroundSecondary.main',
                   borderRadius: 2,
                 }}>
                   <Typography variant="h6">
                     No cryptocurrencies found matching "{searchTerm}"
                   </Typography>
-                  <Button 
-                    variant="outlined" 
+                  <Button
+                    variant="outlined"
                     sx={{ mt: 2 }}
                     onClick={() => setSearchTerm('')}
                   >
@@ -177,22 +186,44 @@ const Dashboard: React.FC = () => {
                   </Button>
                 </Box>
               ) : view === 'list' ? (
-                <CoinTable coins={filteredCoins} />
+                <CoinTable 
+                  coins={filteredCoins} 
+                  onSelectCoin={handleSelectCoin}
+                />
               ) : (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', mx: -1 }}>
                   {filteredCoins.map((coin) => (
-                    <Box sx={{ width: { xs: '100%', sm: '50%', md: '33.33%', lg: '25%' }, p: 1 }} key={coin.id}>
-                      <CoinCard coin={coin} />
+                    <Box 
+                      key={coin.id}
+                      sx={{ 
+                        width: { 
+                          xs: '100%', 
+                          sm: '50%', 
+                          md: '33.33%', 
+                          lg: '25%' 
+                        }, 
+                        p: 1 
+                      }}
+                    >
+                      <CoinCard 
+                        coin={coin} 
+                        onClick={() => handleSelectCoin(coin.id)}
+                      />
                     </Box>
                   ))}
                 </Box>
               )}
             </Box>
-          </Box>
+          </>
         )}
       </Container>
-      
-  
+
+      {/* Coin Details Modal */}
+      <CoinDetailsModal
+        coin={detailsCoin}
+        onClose={() => setDetailsCoin(null)}
+        coins={coins}
+      />
     </Box>
   );
 };

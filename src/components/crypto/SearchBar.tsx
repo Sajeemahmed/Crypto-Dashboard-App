@@ -1,9 +1,9 @@
 import React from 'react';
-import { 
-  TextField, 
-  InputAdornment, 
-  Paper, 
-  Box 
+import {
+  TextField,
+  InputAdornment,
+  Paper,
+  Box
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { motion } from 'framer-motion';
@@ -13,9 +13,9 @@ interface SearchBarProps {
   onSearchChange: (value: string) => void;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ 
-  searchTerm, 
-  onSearchChange 
+const SearchBar: React.FC<SearchBarProps> = ({
+  searchTerm,
+  onSearchChange
 }) => {
   return (
     <motion.div
@@ -24,9 +24,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
       transition={{ duration: 0.3 }}
     >
       <Box sx={{ width: '100%', mb: 3 }}>
-        <Paper 
+        <Paper
           elevation={3}
-          sx={{ 
+          sx={{
             p: 0.5,
             borderRadius: 2,
             background: (theme) => theme.palette.backgroundSecondary.main,
